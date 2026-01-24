@@ -3,14 +3,23 @@ import { Provider } from "react-redux";
 import { Stack } from "expo-router";
 import Mystore from "../redux/store/Mystore";
 
-export default function RootLayout() {
+const StackLayout = () => {
     return (
-        <Provider store={Mystore}>
-            <Stack screenOptions={{
-                headerShown: false,
-                animation: "slide_from_right",
-                animationDuration: 600,
-            }} />
-        </Provider>
+        <Stack screenOptions={{
+            headerShown: false,
+            animation: "slide_from_right",
+            animationDuration: 600,
+        }} />
     );
 }
+
+const RootLayout = () => {
+    return (
+        <Provider store={Mystore}>
+            <StackLayout />
+        </Provider>
+    )
+}
+
+
+export default RootLayout;

@@ -5,7 +5,7 @@ export const handleregister = createAsyncThunk("auth/register", async (data, thu
     try {
         const response = await registerApi(data);
         console.log(response, 'resssssssssss from auth slice ')
-        return response.data.data;
+        return response.data;
     }
     catch (error) {
         return thunkAPI.rejectWithValue(
@@ -19,7 +19,7 @@ export const handlelogin = createAsyncThunk("auth/login", async (data, thunkAPI)
     try {
         const response = await loginApi(data);
         console.log(response, 'resssssssssss from loginnnnnnnn ')
-        return response.data.data;
+        return response.data;
     }
     catch (error) {
         return thunkAPI.rejectWithValue(
@@ -34,11 +34,13 @@ const initialState = {
         registeruser: {},
         registerloading: false,
         registererror: null,
+        token: null,
     },
     logindata: {
         loginuser: {},
         loginloading: false,
         loginerror: null,
+        token: null,
     }
 }
 
@@ -56,6 +58,7 @@ const AuthSlice = createSlice({
             .addCase(handleregister.fulfilled, (state, action) => {
                 state.regisetdata.registerloading = false;
                 state.regisetdata.registeruser = action.payload;
+                state.regisetdata.token = action.payload.token;
             })
             .addCase(handleregister.rejected, (state, action) => {
                 state.regisetdata.registerloading = false;
@@ -70,6 +73,7 @@ const AuthSlice = createSlice({
             .addCase(handlelogin.fulfilled, (state, action) => {
                 state.logindata.loginloading = false;
                 state.logindata.loginuser = action.payload;
+                state.logindata.token = action.payload.token;
             })
             .addCase(handlelogin.rejected, (state, action) => {
                 state.logindata.loginloading = false;

@@ -28,7 +28,6 @@ const Register = () => {
 
     const { risteruser, registerloading, registererror } = useSelector((state) => state.authslice.regisetdata);
 
-
     const handlesubmit = async () => {
         // Trim values
         const fullName = nameRef.current?.trim();
@@ -69,15 +68,12 @@ const Register = () => {
 
         try {
             const res = await dispatch(handleregister(data)).unwrap();
-            const token = res.token;
-            AsyncStorage.setItem("token", token);
-            // ✅ Success
-            Alert.alert("Success", "Registration successful!", [
-                {
-                    text: "Go to Login",
-                    onPress: () => router.replace("/(auth)/Login"),
-                },
-            ]);
+            const token = res?.token;
+            if (!token) {
+                Alert.alert(token, 'token missing !!!')
+            }
+            await AsyncStorage.setItem("token", token);
+            router.replace("/(auth)/Login")
         } catch (err) {
             Alert.alert("Error", err || "Registration failed");
             console.log(err, 'error message');
@@ -111,19 +107,16 @@ const Register = () => {
 
                             <Inputs placeholder="Enter Your Name ..."
                                 icon={<FontAwesome name="user-o" size={verticalScale(20)} color={Colors.neutral500} />}
-                                onChangeText={(e) => nameRef.current = e}
-                            />
+                                onChangeText={(e) => nameRef.current = e} />
 
                             <Inputs placeholder="Enter Your Email ..."
                                 icon={<Fontisto name="email" size={verticalScale(20)} color={Colors.neutral500} />}
-                                onChangeText={(e) => emailRef.current = e}
-                            />
+                                onChangeText={(e) => emailRef.current = e} />
 
                             <Inputs placeholder="Enter Your password ..."
                                 icon={<SimpleLineIcons name="lock" size={verticalScale(20)} color={Colors.neutral500} />}
                                 secureTextEntry
-                                onChangeText={(e) => passwordRef.current = e}
-                            />
+                                onChangeText={(e) => passwordRef.current = e} />
 
                             <View style={{ marginTop: spacingY._25, gap: spacingY._15 }}>
                                 <Button loading={registerloading} onPress={handlesubmit}>

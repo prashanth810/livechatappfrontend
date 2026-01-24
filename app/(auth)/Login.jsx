@@ -25,27 +25,25 @@ const Login = () => {
     const { loginloading } = useSelector((state) => state.authslice.logindata);
 
     const handlesubmit = async () => {
+        const email = emailRef.current;
+        const password = passwordRef.current;
+
         if (!emailRef.current || !passwordRef.current) {
             Alert.alert("Error", "Please fill all fields!");
             return;
         }
 
         const data = {
-            email: emailRef.current,
-            password: passwordRef.current,
+            email,
+            password,
         };
 
         try {
             // 🔥 wait for API result
-            await dispatch(handlelogin(data)).unwrap();
-
-            // ✅ SUCCESS → navigate
-            Alert.alert("Success", "Login successful!", [
-                {
-                    text: "OK",
-                    onPress: () => router.replace("/(tabs)"), // or Home route
-                },
-            ]);
+            const res = await dispatch(handlelogin(data)).unwrap();
+            const token = res?.token;
+            await AsyncStorage.setItem("token", token);
+            router.replace("/(main)/Home");
 
         } catch (error) {
             // ❌ ERROR → show backend message
