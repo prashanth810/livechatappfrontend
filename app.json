@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "frontend",
+    "slug": "frontend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+
+    "icon": "../assets/images/welcome.png",
+
+    "scheme": "frontend",
+    "userInterfaceStyle": "automatic",
+
+    "ios": {
+      "supportsTablet": true
+    },
+
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "../assets/images/welcome.png",
+        "backgroundColor": "#E6F4FE"
+      }
+    },
+
+    "web": {
+      "favicon": "../assets/images/welcome.png"
+    },
+
+    "plugins": ["expo-router"]
+  }
+}
