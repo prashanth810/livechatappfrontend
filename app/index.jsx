@@ -7,6 +7,7 @@ import splashimage from '../assets/images/splashImage.png';
 import { useRouter } from 'expo-router';
 import ScreenWrapper from '../components/ScreenWrapper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { connectSocket } from '../sockets/Socket';
 
 
 const index = () => {
@@ -19,7 +20,7 @@ const index = () => {
     const checkAuth = async () => {
         try {
             const token = await AsyncStorage.getItem("token");
-
+            await connectSocket();
             if (token) {
                 // ✅ User already logged in
                 setTimeout(() => {

@@ -13,6 +13,7 @@ import Button from '../../components/Button';
 import { handlelogin } from '../../redux/slices/AuthSlce';
 import { useDispatch, useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { connectSocket } from '../../sockets/Socket';
 
 
 const Login = () => {
@@ -43,7 +44,12 @@ const Login = () => {
             const res = await dispatch(handlelogin(data)).unwrap();
             const token = res?.token;
             await AsyncStorage.setItem("token", token);
-            router.replace("/(main)/Home");
+
+            if (token) {
+                // socket connection makes 
+                await connectSocket();
+                router.replace("/(main)/Home");
+            }
 
         } catch (error) {
             // ❌ ERROR → show backend message

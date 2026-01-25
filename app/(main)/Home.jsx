@@ -6,19 +6,28 @@ import { Colors } from '../../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import Button from '../../components/Button';
+import { disconnectSocket } from '../../sockets/Socket';
 
 const Home = () => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
     const handlelogout = async () => {
-        setLoading(true);
-        await AsyncStorage.removeItem("token");
-        setTimeout(() => {
+        try {
+            setLoading(true);
+
+            disconnectSocket(); // no await needed
+            await AsyncStorage.removeItem("token");
+
             router.replace("/(auth)/Login");
+        } catch (err) {
+            console.log("Logout error:", err);
+        } finally {
             setLoading(false);
-        }, 1000);
-    }
+        }
+    };
+
+
     return (
         <ScreenWrapper>
             <Headers color={Colors.white}>Home</Headers>
