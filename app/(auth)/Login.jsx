@@ -25,38 +25,42 @@ const Login = () => {
     const dispatch = useDispatch();
     const { loginloading } = useSelector((state) => state.authslice.logindata);
 
+
     const handlesubmit = async () => {
         const email = emailRef.current;
         const password = passwordRef.current;
 
-        if (!emailRef.current || !passwordRef.current) {
+        if (!email || !password) {
             Alert.alert("Error", "Please fill all fields!");
             return;
         }
 
-        const data = {
-            email,
-            password,
-        };
-
         try {
-            // 🔥 wait for API result
-            const res = await dispatch(handlelogin(data)).unwrap();
+            const res = await dispatch(handlelogin({ email, password })).unwrap();
             const token = res?.token;
-            await AsyncStorage.setItem("token", token);
 
-            if (token) {
-                // socket connection makes 
-                await connectSocket();
-                router.replace("/(main)/Home");
+            if (!token) {
+                Alert.alert("Error", "No token received");
+                return;
             }
 
+            await AsyncStorage.setItem("token", token);
+            console.log("✅ Token saved");
+
+            // Wait a bit before connecting
+            setTimeout(async () => {
+                const sock = await connectSocket();
+                if (sock) {
+                    console.log("✅ Socket connection initiated");
+                    router.replace("/(main)/Home");
+                } else {
+                    console.log("❌ Socket connection failed, but navigating anyway");
+                    router.replace("/(main)/Home");
+                }
+            }, 500);
+
         } catch (error) {
-            // ❌ ERROR → show backend message
-            Alert.alert(
-                "Login Failed",
-                error || "Invalid email or password"
-            );
+            Alert.alert("Login Failed", error || "Invalid email or password");
         }
     };
 

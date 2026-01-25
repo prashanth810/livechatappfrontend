@@ -1,6 +1,5 @@
 import { io } from "socket.io-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Utilities } from "../constants/Utilities.js";
 
 let socket = null;
 
@@ -8,32 +7,61 @@ let socket = null;
  * Connect socket (only once)
  */
 export const connectSocket = async () => {
-    if (socket) {
-        return socket; // already connected
+    if (socket?.connected) {
+        console.log("✅ Socket already connected");
+        return socket;
     }
 
-    const token = await AsyncStorage.getItem("token");
+    // Disconnect old socket if exists
+    if (socket) {
+        socket.disconnect();
+        socket = null;
+    }
 
-    socket = io(Utilities, {
-        transports: ["websocket"],
-        auth: {
-            token,
-        },
-    });
+    try {
+        const token = await AsyncStorage.getItem("token");
 
-    socket.on("connect", () => {
-        console.log("🟢 Socket connected:", socket.id);
-    });
+        if (!token) {
+            console.log("❌ No token found");
+            return null;
+        }
 
-    socket.on("receive-message", (data) => {
-        console.log("📩 Message received:", data);
-    });
+        console.log("🔄 Connecting socket...");
 
-    socket.on("disconnect", () => {
-        console.log("🔴 Socket disconnected");
-    });
+        const SOCKET_URL = "https://chatappbackend-umber.vercel.app";
 
-    return socket;
+        socket = io(SOCKET_URL, {
+            transports: ["polling", "websocket"], // ✅ Try polling first
+            auth: { token },
+            reconnection: true,
+            reconnectionAttempts: 3,
+            reconnectionDelay: 2000,
+            timeout: 20000, // ✅ Increased timeout
+            forceNew: true, // ✅ Force new connection
+        });
+
+        socket.on("connect", () => {
+            console.log("🟢 Socket connected:", socket.id);
+        });
+
+        socket.on("receive-message", (data) => {
+            console.log("📩 Message received:", data);
+        });
+
+        socket.on("disconnect", (reason) => {
+            console.log("🔴 Socket disconnected:", reason);
+        });
+
+        socket.on("connect_error", (error) => {
+            console.log("❌ Connection error:", error.message);
+            console.log("❌ Error details:", error);
+        });
+
+        return socket;
+    } catch (error) {
+        console.log("❌ Socket connection failed:", error);
+        return null;
+    }
 };
 
 /**
@@ -50,5 +78,6 @@ export const disconnectSocket = () => {
     if (socket) {
         socket.disconnect();
         socket = null;
+        console.log("🔴 Socket manually disconnected");
     }
 };
