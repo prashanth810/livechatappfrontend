@@ -28,7 +28,7 @@ export const connectSocket = async () => {
 
         console.log("🔄 Connecting socket...");
 
-        const SOCKET_URL = "https://chatappbackend-umber.vercel.app";
+        const SOCKET_URL = "https://chatappbackend-pi.vercel.app";
 
         socket = io(SOCKET_URL, {
             transports: ["polling", "websocket"], // ✅ Try polling first

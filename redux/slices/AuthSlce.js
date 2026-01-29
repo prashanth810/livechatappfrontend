@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { loginApi, registerApi } from "../services/AuthService";
+import { getprofiledata, loginApi, registerApi } from "../services/AuthService";
 
 export const handleregister = createAsyncThunk("auth/register", async (data, thunkAPI) => {
     try {
@@ -29,7 +29,20 @@ export const handlelogin = createAsyncThunk("auth/login", async (data, thunkAPI)
 });
 
 
+export const fetchselfprofile = createAsyncThunk("/auth/profile", async (_, thunkAPI) => {
+    try {
+        const response = await getprofiledata();
+        return response.data.data;
+    }
+    catch (error) {
+        return thunkAPI.rejectWithValue(error.message);
+    }
+})
+
+
 const initialState = {
+    token: null,   // ⭐ GLOBAL TOKEN
+    user: null,
     regisetdata: {
         registeruser: {},
         registerloading: false,
@@ -41,13 +54,25 @@ const initialState = {
         loginloading: false,
         loginerror: null,
         token: null,
-    }
+    },
+    profiledata: {
+        profileuser: {},
+        profileloading: false,
+        profileerror: null,
+    },
 }
 
 const AuthSlice = createSlice({
     name: "auth",
     initialState,
-    reducers: {},
+    reducers: {
+        logout: (state) => {
+            state.token = null;
+            state.user = null;
+            state.profiledata.profileuser = {};
+        },
+    },
+
     extraReducers: (builder) => {
         builder
             // regisetr apis 
@@ -59,6 +84,10 @@ const AuthSlice = createSlice({
                 state.regisetdata.registerloading = false;
                 state.regisetdata.registeruser = action.payload;
                 state.regisetdata.token = action.payload.token;
+
+                // logout purpose 
+                state.token = action.payload.token;   // ⭐ HERE
+                state.user = action.payload.user;
             })
             .addCase(handleregister.rejected, (state, action) => {
                 state.regisetdata.registerloading = false;
@@ -74,12 +103,31 @@ const AuthSlice = createSlice({
                 state.logindata.loginloading = false;
                 state.logindata.loginuser = action.payload;
                 state.logindata.token = action.payload.token;
+                // logou purpose
+                state.token = action.payload.token;   // ⭐ HERE
+                state.user = action.payload.user;
+
             })
             .addCase(handlelogin.rejected, (state, action) => {
                 state.logindata.loginloading = false;
                 state.logindata.loginerror = action.payload;
             })
+
+            .addCase(fetchselfprofile.pending, (state) => {
+                state.profiledata.profileloading = true;
+                state.profiledata.profileerror = null;
+            })
+            .addCase(fetchselfprofile.fulfilled, (state, action) => {
+                state.profiledata.profileloading = false;
+                state.profiledata.profileuser = action.payload;
+            })
+            .addCase(fetchselfprofile.rejected, (state, action) => {
+                state.profiledata.profileloading = false;
+                state.profiledata.profileerror = action.payload;
+            })
+
     }
 })
 
+export const { logout } = AuthSlice.actions;
 export default AuthSlice.reducer;

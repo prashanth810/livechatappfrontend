@@ -8,3 +8,8 @@ export const loginApi = (data) => {
 export const registerApi = (data) => {
     return BaseUrl.post("/register", data);
 };
+
+
+export const getprofiledata = () => {
+    return BaseUrl.get(`profile`);
+}
