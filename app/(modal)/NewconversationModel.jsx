@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { Colors, radius, spacingX, spacingY } from '../../constants/theme';
 import HeadComponent from '../../components/HeadComponent';
-import Avatar from '../../components/Avatar';
+import Avatar, { uploadimagecloudinary } from '../../components/Avatar';
 import Entypo from 'react-native-vector-icons/Entypo'
 import { verticalScale } from '../../util/styling';
 import * as ImagePicker from "expo-image-picker";
 import Headers from '../../components/Headers';
 import Button from '../../components/Button';
+import { getcontacts, newcpncersation } from '../../sockets/SocketEvents';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchselfprofile } from '../../redux/slices/AuthSlce';
 
 const NewconversationModel = () => {
     const { isGroup } = useLocalSearchParams();
@@ -18,14 +21,91 @@ const NewconversationModel = () => {
     const [groupname, setGrouname] = useState("");
     const [selectedusers, setSelectedusers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [contacts, setContacts] = useState([]);
 
-    const contacts = [
-        { id: "1", name: "Alice Johnson", avatar: "https://randomuser.me/api/portraits/women/1.jpg" },
-        { id: "2", name: "Bob Smith", avatar: "https://randomuser.me/api/portraits/men/2.jpg" },
-        { id: "3", name: "Charlie Brown", avatar: "https://randomuser.me/api/portraits/men/3.jpg" },
-        { id: "4", name: "Diana Prince", avatar: "https://randomuser.me/api/portraits/women/4.jpg" },
-        { id: "5", name: "Ethan Hunt", avatar: "https://randomuser.me/api/portraits/men/5.jpg" },
-    ];
+    const router = useRouter();
+    const routerRef = useRef(router);
+    routerRef.current = router;
+
+    const dispatch = useDispatch();
+
+    const { profileuser, profileloading, profileerror } = useSelector((state) => state.authslice.profiledata);
+
+    // Refs to always hold the latest callback — fixes stale closure
+    const handlegetcontactsRef = useRef(null);
+    const handlegetnewcpncersationRef = useRef(null);
+
+    useEffect(() => {
+        dispatch(fetchselfprofile());
+    }, [dispatch]);
+
+    // Update refs every render so socket always calls the latest version
+    handlegetcontactsRef.current = (data) => {
+        console.log("Contacts data received:", data);
+        if (data?.success) {
+            setContacts(data.data || []);
+        }
+        else {
+            Alert.alert("Error", data?.message || "Failed to fetch contacts.");
+        }
+    };
+
+    handlegetnewcpncersationRef.current = (data) => {
+        // console.log("📥 Server response:", data.data.participants);
+        setIsLoading(false);
+
+        if (data?.data?._id) {
+            console.log("✅ Navigating to conversation:", data.data._id.toString());
+            routerRef.current.push({
+                pathname: "/(main)/Conversation",
+                params: {
+                    id: data.data._id.toString(),
+                    name: data.data.name,
+                    avatar: data.data.avatar,
+                    type: data.data.type,
+                    participants: JSON.stringify(data.data.participants)
+                }
+            });
+            return;
+        }
+
+        if (data?.data) {
+            console.log("✅ Fallback navigate:", data.data._id?.toString());
+            routerRef.current.push({
+                pathname: "/(main)/Conversation",
+                params: {
+                    id: data.data._id?.toString(),
+                    name: data.data.name,
+                    avatar: data.data.avatar,
+                    type: data.data.type,
+                    participants: JSON.stringify(data.data.participants)
+                }
+            });
+            return;
+        }
+
+        console.log("⚠️ No ID from backend, but conversation might exist");
+    };
+
+    // Stable wrappers — registered once, always delegate to current ref
+    const stableContactsHandler = useRef((data) => {
+        handlegetcontactsRef.current?.(data);
+    }).current;
+
+    const stableNewConversationHandler = useRef((data) => {
+        handlegetnewcpncersationRef.current?.(data);
+    }).current;
+
+    useEffect(() => {
+        getcontacts(stableContactsHandler);
+        newcpncersation(stableNewConversationHandler);
+        getcontacts();
+
+        return () => {
+            getcontacts(stableContactsHandler, true);
+            newcpncersation(stableNewConversationHandler, true);
+        }
+    }, []);
 
 
     const handleaddgroupimage = async () => {
@@ -41,33 +121,68 @@ const NewconversationModel = () => {
         }
     }
 
+    // Selects or deselects a user — works for 1 or more
     const toggleparticipant = (user) => {
         setSelectedusers((prev) => {
-            if (prev.find(u => u.id === user.id)) {
-                return prev.filter(u => u.id !== user.id);
+            if (prev.includes(user.id)) {
+                return prev.filter(id => id !== user.id);
             }
             return [...prev, user.id];
         })
     }
 
+    // Direct mode only
     const onselect = (user) => {
-        if (!user) {
-            return Alert.alert("User not found, please login and chat again.");
-        }
+        if (!profileuser?._id) return;
 
-        if (isGroupMode) {
-            toggleparticipant(user);
-        }
-        else {
+        const payload = {
+            type: "direct",
+            participants: [profileuser._id, user.id],
+        };
+        console.log(profileuser._id, user.id);
 
-        }
-    }
+        newcpncersation(payload);
+
+        console.log("➡️ Waiting for server response to navigate");
+    };
+
 
 
     const createGroup = async () => {
-        if (!groupname.trim() || selectedusers.length < 2) return;
+        // Need a name AND at least 2 other users
+        if (!groupname.trim() || selectedusers.length < 2) {
+            Alert.alert("Error", "Please enter a group name and select at least 2 users.");
+            return;
+        }
 
+        if (!profileuser?._id) {
+            Alert.alert("Error", "Profile not loaded. Please try again.");
+            return;
+        }
 
+        setIsLoading(true);
+
+        try {
+            // Avatar is optional — only upload if picked
+            let avatarurl = null;
+            if (gropuavatar) {
+                const uploadresults = await uploadimagecloudinary(gropuavatar, "group-avatars");
+                if (uploadresults?.success) avatarurl = uploadresults.data;
+            }
+
+            newcpncersation({
+                type: "group",
+                participants: [profileuser._id, ...selectedusers],
+                name: groupname.trim(),
+                avatar: avatarurl,
+            });
+
+        }
+        catch (error) {
+            console.log("Error creating group:", error);
+            setIsLoading(false);
+            Alert.alert("Error", "Failed to create group. Please try again.");
+        }
     }
 
 
@@ -83,9 +198,10 @@ const NewconversationModel = () => {
             {isGroupMode && (
                 <View style={styles.groupInfoContainer}>
                     <View style={styles.avatarcontainer}>
-                        <TouchableOpacity onPress={handleaddgroupimage}>
+                        <TouchableOpacity onPress={handleaddgroupimage} >
                             <Avatar uri={gropuavatar?.uri || null} isGroup={true} size={80} />
                         </TouchableOpacity>
+                        <Text style={styles.optionalLabel}>Optional</Text>
                     </View>
 
                     <View style={styles.groupnamecontainer}>
@@ -95,15 +211,27 @@ const NewconversationModel = () => {
                             onChangeText={setGrouname}
                         />
                     </View>
+
+                    {selectedusers.length > 0 && (
+                        <Text style={styles.selectedCount}>
+                            {selectedusers.length} {selectedusers.length === 1 ? "user" : "users"} selected
+                            {selectedusers.length < 2 && (
+                                <Text style={styles.minUsersHint}> — select at least 2</Text>
+                            )}
+                        </Text>
+                    )}
                 </View>
             )}
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.contactList}>
                 {contacts.map((user, i) => {
-
-                    const isSelected = selectedusers.includes(user.id); // Replace with actual selection logic
+                    console.log(user, 'uuuuuuuuuuuuuuu')
+                    const isSelected = selectedusers.includes(user.id);
                     return (
-                        <TouchableOpacity key={user.id} style={[styles.contactRow, isSelected && styles.selectContact]} onPress={() => onselect(user)}>
+                        <TouchableOpacity
+                            key={user.id}
+                            style={[styles.contactRow, isSelected && styles.selectContact]}
+                            onPress={() => isGroupMode ? toggleparticipant(user) : onselect(user)} >
                             <Avatar uri={user.avatar} size={45} />
                             <Headers color={Colors.white} >{user.name}</Headers>
                             {isGroupMode && (
@@ -117,10 +245,11 @@ const NewconversationModel = () => {
                 })}
             </ScrollView>
 
+            {/* Shows when at least 2 users are selected in group mode */}
             {isGroupMode && selectedusers.length >= 2 && (
                 <View style={styles.createbutton}>
                     <Button onPress={createGroup}
-                        disabled={!groupname.trim()}
+                        disabled={!groupname.trim() || isLoading}
                         loading={isLoading}
                     > <Headers fontWeight='bold' size={16}> Create</Headers> </Button>
                 </View>
@@ -141,19 +270,36 @@ const styles = StyleSheet.create({
     },
     avatarcontainer: {
         marginBottom: spacingY._10,
+        alignItems: "center",
+    },
+    optionalLabel: {
+        color: "#888",
+        fontSize: verticalScale(12),
+        marginTop: 4,
+    },
+    selectedCount: {
+        color: Colors.primary,
+        fontSize: verticalScale(13),
+        marginTop: spacingY._5,
+        marginBottom: spacingY._5,
+    },
+    minUsersHint: {
+        color: "#888",
+        fontSize: verticalScale(12),
     },
     groupnamecontainer: {
         width: "94%",
     },
     input: {
-        backgroundColor: "#1E1E1E",     // dark card look
+        backgroundColor: "#1E1E1E",
         borderWidth: 1,
         placeholderTextColor: "#fff",
-        borderColor: "#333",            // soft border
+        borderColor: "#333",
         color: "#fff",
         borderRadius: 12,
         fontSize: verticalScale(15),
         paddingLeft: verticalScale(15),
+        height: verticalScale(48),
     },
     contactList: {
         gap: spacingY._12,

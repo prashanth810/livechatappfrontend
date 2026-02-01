@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import ScreenWrapper from '../../components/ScreenWrapper'
 import Headers from '../../components/Headers'
 import { Colors, radius, spacingX, spacingY } from '../../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import Button from '../../components/Button';
 import { disconnectSocket } from '../../sockets/Socket';
-import { Testingsocket } from '../../sockets/SocketEvents';
+import { getconversation, Testingsocket, newcpncersation } from '../../sockets/SocketEvents';
 import { verticalScale } from '../../util/styling';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchselfprofile } from '../../redux/slices/AuthSlce';
@@ -16,79 +17,12 @@ import Conversationmessages from '../../components/Conversationmessages';
 import Loading from '../../components/Loading';
 import Entypo from 'react-native-vector-icons/Entypo'
 
-const conversations = [
-    {
-        name: "Project Team",
-        type: "group",
-        lastMessage: {
-            senderName: "Sarah",
-            content: "Meeting rescheduled to 3pm tomorrow.",
-            createdAt: "2025-06-21T14:10:00Z",
-        },
-    },
-    {
-        name: "Bob",
-        type: "direct",
-        lastMessage: {
-            // attachment: { uri: "image.png" },
-            senderName: "Bob",
-            content: "Can you send the files?",
-            createdAt: "2025-06-23T09:30:00Z",
-        },
-    },
-    {
-        name: "Family Group",
-        type: "group",
-        lastMessage: {
-            senderName: "Mom",
-            content: "Dinner is ready 🍲",
-            createdAt: "2025-06-24T19:05:00Z",
-        },
-    },
-    {
-        name: "Design Squad",
-        type: "group",
-        lastMessage: {
-            senderName: "Arjun",
-            content: "New UI screens are uploaded to Figma.",
-            createdAt: "2025-06-24T11:45:00Z",
-        },
-    },
-    {
-        name: "Akhil",
-        type: "direct",
-        lastMessage: {
-            senderName: "Akhil",
-            content: "Bro where are you?",
-            createdAt: "2025-06-25T17:12:00Z",
-        },
-    },
-    {
-        name: "Office HR",
-        type: "group",
-        lastMessage: {
-            senderName: "HR Team",
-            content: "Salary credited 💰",
-            createdAt: "2025-06-25T10:00:00Z",
-        },
-    },
-    {
-        name: "Ritika",
-        type: "direct",
-        lastMessage: {
-            senderName: "You",
-            content: "I'll call you later.",
-            createdAt: "2025-06-25T20:18:00Z",
-        },
-    },
-];
-
-
 
 const Home = () => {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [selectedtab, setSelectedtab] = useState(0);
+    const [conversation, setConversation] = useState([]);
 
     // need to remove not needed 
     useEffect(() => {
@@ -99,6 +33,55 @@ const Home = () => {
             Testingsocket(handler, true); // cleanup
         };
     }, []);
+
+    // Ref so the socket callback is never stale
+    const procesgetconversationRef = useRef(null);
+
+    procesgetconversationRef.current = (data) => {
+        console.log(data, 'homeeeeeeeeee');
+        setLoading(false);
+        if (data?.success && data?.data) {
+            setConversation(data.data);
+        }
+    };
+
+    // When newcpncersation fires, just re-fetch the list
+    const handlenewcpncersationRef = useRef(null);
+
+    handlenewcpncersationRef.current = (data) => {
+        console.log("🆕 New conversation event in Home, refetching...");
+        if (data?.success) {
+            getconversation(); // re-emit to refresh list
+        }
+    };
+
+    // Stable wrappers — registered once, always call latest ref
+    const stableGetConversationHandler = useRef((data) => {
+        procesgetconversationRef.current?.(data);
+    }).current;
+
+    const stableNewConversationHandler = useRef((data) => {
+        handlenewcpncersationRef.current?.(data);
+    }).current;
+
+    // Register listeners once
+    useEffect(() => {
+        getconversation(stableGetConversationHandler);
+        newcpncersation(stableNewConversationHandler);
+
+        return () => {
+            getconversation(stableGetConversationHandler, true);
+            newcpncersation(stableNewConversationHandler, true);
+        }
+    }, []);
+
+    // Re-fetch every time Home screen comes into focus (e.g. navigating back)
+    useFocusEffect(
+        useCallback(() => {
+            setLoading(true);
+            getconversation(); // emit to fetch
+        }, [])
+    );
 
     const handler = (data) => {
         console.log("Received:", data);
@@ -112,8 +95,6 @@ const Home = () => {
         dispatch(fetchselfprofile());
     }, [dispatch]);
 
-
-    console.log(profileuser, ' uuuuuuuuuuuuuuuuuuuu')
 
     const handlelogout = async () => {
         try {
@@ -139,14 +120,53 @@ const Home = () => {
         router.push("/(profile)/ProfileModel");
     }
 
-    const directmessages = conversations.filter((item) => item.type === "direct").sort((a, b) => {
+    // Normalize raw server data into shape Conversationmessages expects
+    const processConversations = (data) => {
+        const myId = profileuser?._id?.toString();
+
+        return data.map((item) => {
+            let name = item.name || "";
+            let avatar = item.avatar || null;
+
+            if (item.type === "direct") {
+                // participants can be ObjectId strings or populated objects
+                const other = item.participants?.find((p) => {
+                    const pid = p?._id ? p._id.toString() : p?.toString();
+                    return pid !== myId;
+                });
+
+                // other could be a populated object { _id, fullName, avatar } or just an ObjectId string
+                if (other && typeof other === "object" && other._id) {
+                    name = other.fullName || other.name || "Unknown";
+                    avatar = other.avatar || null;
+                } else {
+                    // not populated — just show the raw id as fallback
+                    name = "User";
+                    avatar = null;
+                }
+            }
+
+            return {
+                ...item,
+                _id: item._id?.toString(),
+                name: name,
+                avatar: avatar,
+                // lastMessage might not exist yet — give a safe default
+                lastMessage: item.lastMessage || null,
+            };
+        });
+    };
+
+    const processed = profileuser?._id ? processConversations(conversation) : [];
+
+    const directmessages = processed.filter((item) => item.type === "direct").sort((a, b) => {
         const adata = a?.lastMessage?.createdAt || a.createdAt;
         const bdata = b?.lastMessage?.createdAt || b.createdAt;
         return new Date(bdata).getTime() - new Date(adata)
             .getTime();
     })
 
-    const groupmessages = conversations.filter((item) => item.type === "group").sort((a, b) => {
+    const groupmessages = processed.filter((item) => item.type === "group").sort((a, b) => {
         const adata = a?.lastMessage?.createdAt || a.createdAt;
         const bdata = b?.lastMessage?.createdAt || b.createdAt;
         return new Date(bdata).getTime() - new Date(adata)

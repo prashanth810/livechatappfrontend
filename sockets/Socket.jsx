@@ -28,10 +28,10 @@ export const connectSocket = async () => {
 
         console.log("🔄 Connecting socket...");
 
-        const SOCKET_URL = "https://chatappbackend-pi.vercel.app";
+        const SOCKET_URL = "http://chatappbackend-10ud.onrender.com";
 
-        socket = io(SOCKET_URL, {
-            transports: ["polling", "websocket"], // ✅ Try polling first
+        socket = io("http://chatappbackend-10ud.onrender.com", {
+            transports: ["websocket"], // ✅ Try polling first
             auth: { token },
             reconnection: true,
             reconnectionAttempts: 3,

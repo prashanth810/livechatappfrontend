@@ -1,13 +1,37 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
-import { spacingX, spacingY } from '../constants/theme'
+import { Colors, spacingX, spacingY } from '../constants/theme'
 import Avatar from './Avatar'
 import Headers from './Headers';
 import moment from 'moment';
+import { useRouter } from 'expo-router';
 
 const Conversationmessages = ({ item, i, showDivider }) => {
     const lastmessage = item.lastMessage;
     const direct = item.type === "direct";
+
+    const router = useRouter();
+    console.log(item, 'iiiiiiiiiiiiiiii')
+
+    // For direct: pick the other user from participants
+    // For group: use item.avatar
+    const getAvatar = () => {
+        if (direct) {
+            const other = item.participants?.find((p) => p._id !== item.participants[0]._id) || item.participants?.[0];
+            return other?.avatar || null;
+        }
+        return item.avatar || null;
+    };
+
+    // For direct: pick the other user's fullName from participants
+    // For group: use item.name
+    const getName = () => {
+        if (direct) {
+            const other = item.participants?.find((p) => p._id !== item.participants[0]._id) || item.participants?.[0];
+            return other?.fullName || "User";
+        }
+        return item.name || "Group";
+    };
 
     const formateddata = () => {
         if (!lastmessage?.createdAt) return "";
@@ -32,20 +56,30 @@ const Conversationmessages = ({ item, i, showDivider }) => {
     }
 
 
-    const startconversation = () => { }
+    const startconversation = () => {
+        router.push({
+            pathname: "/(main)/Conversation",
+            params: {
+                id: item._id,
+                name: item.name,
+                avatar: item.avatar,
+                participants: JSON.stringify(item.participants),
+            }
+        })
+    }
 
     return (
         <View key={i}>
             <TouchableOpacity
                 style={styles.conversationmes} onPress={startconversation}>
                 <View>
-                    <Avatar uri={null} size={40} isGroup={item.type === "group"} />
+                    <Avatar uri={getAvatar()} size={40} isGroup={item.type === "group"} />
                 </View>
 
                 <View style={{ flex: 1 }}>
                     <View style={styles.row}>
-                        <Headers size={15} fontWeight='600'>
-                            {item.name}
+                        <Headers size={15} fontWeight='600' color={Colors.black}>
+                            {getName()}
                         </Headers>
 
                         {item.lastMessage && (
