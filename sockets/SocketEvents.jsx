@@ -116,3 +116,55 @@ export const getconversation = (handler, off = false) => {
     // emit
     socket.emit("getconversation", handler);
 };
+
+export const newmessage = (handler, off = false) => {
+    const socket = getSocket();
+    console.log("🔌 Socket connected?", socket?.connected);
+    console.log("🆔 My socket id:", socket?.id);
+
+    console.log(socket.data, 'ooooooooooooooooooo')
+
+    if (!socket) {
+        console.log("Socket is not connected !!!");
+        return;
+    }
+
+    if (off && typeof handler === "function") {
+        socket.off("newmessage", handler);
+        return;
+    }
+
+    if (typeof handler === "function") {
+        socket.on("newmessage", handler);
+        return;
+    }
+
+    // emit
+    socket.emit("newmessage", handler);
+};
+
+export const getmessages = (handler, off = false) => {
+    const socket = getSocket();
+    console.log("🔌 Socket connected?", socket?.connected);
+    console.log("🆔 My socket id:", socket?.id);
+
+    console.log(socket.data, 'ooooooooooooooooooo')
+
+    if (!socket) {
+        console.log("Socket is not connected !!!");
+        return;
+    }
+
+    if (off && typeof handler === "function") {
+        socket.off("getmessages", handler);
+        return;
+    }
+
+    if (typeof handler === "function") {
+        socket.on("getmessages", handler);
+        return;
+    }
+
+    // emit
+    socket.emit("getmessages", handler);
+};
