@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import Button from '../../components/Button';
 import { disconnectSocket } from '../../sockets/Socket';
-import { getconversation, Testingsocket, newcpncersation } from '../../sockets/SocketEvents';
+import { getconversation, Testingsocket, newcpncersation, newmessage } from '../../sockets/SocketEvents';
 import { verticalScale } from '../../util/styling';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchselfprofile } from '../../redux/slices/AuthSlce';
@@ -58,6 +58,7 @@ const Home = () => {
     // Stable wrappers — registered once, always call latest ref
     const stableGetConversationHandler = useRef((data) => {
         procesgetconversationRef.current?.(data);
+        console.log(data, 'ddddddddddddddddd');
     }).current;
 
     const stableNewConversationHandler = useRef((data) => {
@@ -68,10 +69,12 @@ const Home = () => {
     useEffect(() => {
         getconversation(stableGetConversationHandler);
         newcpncersation(stableNewConversationHandler);
+        newmessage(handlenewmesssages);
 
         return () => {
             getconversation(stableGetConversationHandler, true);
             newcpncersation(stableNewConversationHandler, true);
+            newmessage(handlenewmesssages, true);
         }
     }, []);
 
@@ -173,8 +176,19 @@ const Home = () => {
             .getTime();
     })
 
-    // const directmessages = [];
-    // const groupmessages = [];
+
+    const handlenewmesssages = (res) => {
+        if (res.success) {
+            let conversationId = res.data.conversationdata;
+            setConversation((prev) => {
+                let updatedconverstion = prev.map((item, i) => {
+                    if (item._id == conversationId) item.lastMessage = res.data;
+                    return item;
+                });
+                return updatedconverstion;
+            })
+        }
+    }
 
 
 

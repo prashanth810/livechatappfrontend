@@ -19,173 +19,11 @@ import Loading from '../../components/Loading'
 import { getmessages, newmessage } from '../../sockets/SocketEvents'
 
 
-
-const dummyMessages = [
-    {
-        id: "msg_1",
-        sender: {
-            id: "user_2",
-            name: "Jane Smith",
-            avatar: null,
-        },
-        content: "Hey! Did you check the new UI updates?",
-        createdAt: "10:30 AM",
-        isMe: false,
-    },
-    {
-        id: "msg_2",
-        sender: {
-            id: "me",
-            name: "Me",
-            avatar: null,
-        },
-        content: "Yes! The design looks super clean 🔥",
-        createdAt: "10:31 AM",
-        isMe: true,
-    },
-    {
-        id: "msg_3",
-        sender: {
-            id: "user_2",
-            name: "Jane Smith",
-            avatar: null,
-        },
-        content: "Nice 😄 We should also add dark mode support.",
-        createdAt: "10:33 AM",
-        isMe: false,
-    },
-    {
-        id: "msg_4",
-        sender: {
-            id: "me",
-            name: "Me",
-            avatar: null,
-        },
-        content: "Already on my list. Working on theme toggle.",
-        createdAt: "10:35 AM",
-        isMe: true,
-    },
-    {
-        id: "msg_5",
-        sender: {
-            id: "user_2",
-            name: "Jane Smith",
-            avatar: null,
-        },
-        content: "Perfect! That would really help users.",
-        createdAt: "10:38 AM",
-        isMe: false,
-    },
-    {
-        id: "msg_6",
-        sender: {
-            id: "me",
-            name: "Me",
-            avatar: null,
-        },
-        content: "Yes, I'm thinking about adding message reactions and file sharing.",
-        createdAt: "10:41 AM",
-        isMe: true,
-    },
-    {
-        id: "msg_7",
-        sender: {
-            id: "user_2",
-            name: "Jane Smith",
-            avatar: null,
-        },
-        content: "Whoa nice, this app is leveling up 🚀",
-        createdAt: "10:42 AM",
-        isMe: false,
-    },
-    {
-        id: "msg_8",
-        sender: {
-            id: "me",
-            name: "Me",
-            avatar: null,
-        },
-        content: "Next step → voice notes 🎤",
-        createdAt: "10:44 AM",
-        isMe: true,
-    },
-    {
-        id: "msg_9",
-        sender: {
-            id: "user_2",
-            name: "Jane Smith",
-            avatar: null,
-        },
-        content: "Whoa nice, this app is leveling up 🚀",
-        createdAt: "10:42 AM",
-        isMe: false,
-    },
-    {
-        id: "msg_10",
-        sender: {
-            id: "me",
-            name: "Me",
-            avatar: null,
-        },
-        content: "Next step → voice notes 🎤",
-        createdAt: "10:44 AM",
-        isMe: true,
-    },
-];
-
-
 const Conversation = () => {
     const [message, setMessage] = useState("");
     const [selectedfile, setSelectedfile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [allmessages, setAllmessages] = useState([]);
-
-    const dispatch = useDispatch();
-
-    const { profileuser, profileloading, profileerror } = useSelector((state) => state.authslice.profiledata);
-
-    useEffect(() => {
-        dispatch(fetchselfprofile());
-    }, [dispatch]);
-
-
-    useEffect(() => {
-        newmessage(handlenewmessages);
-        getmessages(handlegetmessages);
-        getmessages({ conversationId });
-
-        return () => {
-            newmessage(handlenewmessages, true);
-            getmessages(handlegetmessages, true);
-        }
-    }, [conversationId]);
-
-    const handlenewmessages = (res) => {
-        if (!res.success) return;
-
-        const msg = {
-            ...res.data,
-            id: res.data._id,
-            isMe: res.data.sender.id === profileuser._id,
-        };
-
-        setAllmessages(prev => [msg, ...prev]); // because list inverted
-    };
-
-
-    const handlegetmessages = (res) => {
-        console.log("GET MESSAGES:", res);
-
-        if (res.success) {
-            const formatted = res.data.map(msg => ({
-                ...msg,
-                id: msg._id,              // 🔥 required for FlatList
-                isMe: msg.sender.id === profileuser._id,
-            }));
-
-            setAllmessages(formatted);
-        }
-    };
 
 
     const {
@@ -206,14 +44,99 @@ const Conversation = () => {
 
     const participants = stringifiedparticipants ? JSON.parse(stringifiedparticipants) : [];
 
+    const dispatch = useDispatch();
+
+    const { profileuser, profileloading, profileerror } = useSelector((state) => state.authslice.profiledata);
+
+    useEffect(() => {
+        dispatch(fetchselfprofile());
+    }, [dispatch]);
+
+    // Determine conversation details
     let conversationavatar = avatar;
     const isDirect = type === "direct";
 
-    const otherparticipants = isDirect ? participants.find((p) => p._id != profileuser._id) : null;
+    const otherparticipants = isDirect ? participants.find((p) => p._id != profileuser?._id) : null;
 
     if (isDirect && otherparticipants) conversationavatar = otherparticipants.avatar;
 
-    let conversationName = isDirect ? otherparticipants.name : name;
+    let conversationName = isDirect ? otherparticipants?.name : name;
+
+
+    useEffect(() => {
+        if (!conversationId || !profileuser?._id) return;
+
+        // Register listeners
+        newmessage(handlenewmessages);
+        getmessages(handlegetmessages);
+
+        // Fetch messages for this conversation
+        getmessages({ conversationId });
+
+        return () => {
+            newmessage(handlenewmessages, true);
+            getmessages(handlegetmessages, true);
+        }
+    }, [conversationId, profileuser?._id]);
+
+    const handlenewmessages = (res) => {
+        console.log("📩 New message received:", res);
+
+        if (!res.success) return;
+
+        const msgData = res.data;
+        const msg = {
+            _id: msgData._id,
+            id: msgData._id,
+            content: msgData.content || '',
+            attachement: msgData.attachement || null,
+            createdAt: msgData.createdAt,
+            conversationId: msgData.conversationId,
+            sender: {
+                id: msgData.sender?.id || msgData.sender?._id,
+                name: msgData.sender?.name || msgData.sender?.fullName || 'Unknown',
+                avatar: msgData.sender?.avatar || null,
+            },
+            isMe: (msgData.sender?.id || msgData.sender?._id) === profileuser?._id,
+        };
+
+        console.log("📝 Formatted new message:", msg);
+        setAllmessages(prev => [msg, ...prev]); // prepend because list is inverted
+    };
+
+
+    const handlegetmessages = (res) => {
+        console.log("📬 Get messages response:", res);
+
+        if (res.success && res.data) {
+            const formatted = res.data.map(msg => {
+                // Handle mongoose document structure with _doc
+                const msgData = msg._doc || msg;
+                const senderData = msgData.senderId || msg.sender;
+
+                const formattedMsg = {
+                    _id: msgData._id || msg.id,
+                    id: msgData._id || msg.id,
+                    content: msgData.content || '',
+                    attachement: msgData.attachement || null,
+                    createdAt: msgData.createdAt,
+                    conversationId: msgData.conversationId,
+                    sender: {
+                        id: senderData?._id || senderData?.id,
+                        name: senderData?.name || senderData?.fullName || 'Unknown',
+                        avatar: senderData?.avatar || null,
+                    },
+                    isMe: (senderData?._id || senderData?.id) === profileuser?._id,
+                };
+
+                return formattedMsg;
+            });
+
+            console.log("✅ Formatted messages:", formatted);
+            setAllmessages(formatted);
+        }
+    };
+
 
     const onPickfiles = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -248,6 +171,7 @@ const Conversation = () => {
                 else {
                     setLoading(false);
                     Alert.alert("error failed to send image !");
+                    return;
                 }
             }
 
@@ -259,7 +183,7 @@ const Conversation = () => {
                     avatar: profileuser.avatar,
                 },
                 content: message.trim() || "",
-                attachement: attachements || null, // ✅ same name as backend
+                attachement: attachements || null,
             });
 
             console.log(attachements, 'aaaaaaaaaaaa');
@@ -270,7 +194,7 @@ const Conversation = () => {
         }
         catch (error) {
             console.log("error message", error);
-            Alert.alert("error message", error);
+            Alert.alert("Error", "Failed to send message");
         }
         finally {
             setLoading(false);
@@ -287,7 +211,7 @@ const Conversation = () => {
                     leftIcon={<View style={styles.headerleft}>
                         <FontAwesome name="angle-left" size={verticalScale(25)} color={Colors.white} />
                         <Avatar size={40} uri={conversationavatar}
-                            isGroup={type} />
+                            isGroup={type === "group"} />
 
                         <Headers color={Colors.white}>
                             {conversationName}
@@ -299,16 +223,22 @@ const Conversation = () => {
 
                 {/* messages  */}
                 <View style={styles.content}>
-                    <FlatList
-                        data={allmessages}
-                        inverted={true}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.messageconentent}
-                        renderItem={({ item }) => (
-                            <MessagItems item={item} isDirect={isDirect} />
-                        )}
-                        keyExtractor={(item, i) => item.id || i}
-                    />
+                    {allmessages.length === 0 ? (
+                        <View style={styles.emptystate}>
+                            <Headers color={Colors.neutral500}>No messages yet. Start the conversation!</Headers>
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={allmessages}
+                            inverted={true}
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.messageconentent}
+                            renderItem={({ item }) => (
+                                <MessagItems item={item} isDirect={isDirect} />
+                            )}
+                            keyExtractor={(item, i) => item.id || item._id || i.toString()}
+                        />
+                    )}
 
                     <View style={styles.footer}>
                         <Inputs
@@ -379,6 +309,16 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         paddingHorizontal: spacingX._15,
     },
+    emptystate: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: spacingY._50,
+    },
+    messageconentent: {
+        paddingVertical: spacingY._15,
+        gap: spacingY._10,
+    },
     footer: {
         paddingTop: spacingY._7,
         paddingBottom: verticalScale(22),
@@ -387,7 +327,6 @@ const styles = StyleSheet.create({
         position: "absolute",
         right: scale(10),
         top: verticalScale(15),
-        // paddingLeft: spacingX._12,
         borderWidth: 1,
         borderColor: Colors.neutral300,
         borderRadius: radius.full,
