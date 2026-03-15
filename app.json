@@ -1,30 +1,46 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "Real Chat",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-
-    "icon": "../assets/images/welcome.png",
-
     "scheme": "frontend",
     "userInterfaceStyle": "automatic",
-
-    "ios": {
-      "supportsTablet": true
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
     },
-
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pgrandmoms.frontend"
+    },
     "android": {
+      "package": "com.pgrandmoms.frontend",
       "adaptiveIcon": {
-        "foregroundImage": "../assets/images/welcome.png",
+        "foregroundImage": "./assets/images/welcome.png",
         "backgroundColor": "#E6F4FE"
       }
     },
-
     "web": {
-      "favicon": "../assets/images/welcome.png"
+      "favicon": "./assets/images/welcome.png"
     },
-
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router",
+      "expo-image-picker",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/images/splashImage.png",
+          "imageWidth": 200
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "30f4045d-7945-49f6-aa22-dbbd97f758d0"
+      }
+    }
   }
 }

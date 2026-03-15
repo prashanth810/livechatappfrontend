@@ -8,50 +8,23 @@ import singleavatar from "../assets/images/defaultAvatar.png";
 import { CLOUDINARY_NAME, CLOUDINARY_UPLOAD_PRESET } from '../constants/Utilities';
 import axios from 'axios';
 
-
-
 const CLOUDINARY_APIURL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_NAME}/image/upload`;
 
-// export const uploadimagecloudinary = async (file, foldername) => {
-//     try {
-//         if (!file?.uri) {
-//             return { success: true, data: null };
-//         }
-//         if (file && file.uri) {
-//             const formdata = new FormData();
-//             formdata.append("file", {
-//                 uri: file?.uri,
-//                 type: "image/jpg",
-//                 name: file?.uri?.split('/') / pop() || "file.jpg",
-//             });
-
-//             formdata.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-//             formdata.append("folder", foldername);
-
-//             const response = axios.post(CLOUDINARY_APIURL, formdata, {
-//                 headers: {
-//                     "Content-Type": "multiplart/form-data"
-//                 }
-//             });
-//             return { success: true, data: response?.data?.secure_url };
-//         }
-//         return { success: true, data: null };
-//     }
-//     catch (error) {
-//         console.log(error.message, "white uploading error");
-//         return { success: true, message: error.message || "white uploading error" };
-//     }
-// }
-
 export const uploadimagecloudinary = async (file, foldername) => {
-    try {
-        if (!file?.uri) return { success: true, data: null };
 
+    try {
+        // Validate file input
+        if (!file?.uri) {
+            console.error("❌ No file URI provided");
+            return { success: false, message: "No file URI provided" };
+        }
+
+        // Create FormData
         const formdata = new FormData();
 
         const filename = file.uri.split("/").pop();
         const match = /\.(\w+)$/.exec(filename);
-        const fileType = match ? `image/${match[1]}` : `image`;
+        const fileType = match ? `image/${match[1]}` : `image/jpeg`;
 
         formdata.append("file", {
             uri: file.uri,
@@ -62,28 +35,47 @@ export const uploadimagecloudinary = async (file, foldername) => {
         formdata.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
         formdata.append("folder", foldername);
 
+
+        // Upload to Cloudinary
         const response = await axios.post(CLOUDINARY_APIURL, formdata, {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
         });
 
-        return { success: true, data: response.data.secure_url };
+
+        // Validate response has URL
+        if (!response.data.secure_url) {
+            console.error("❌ No secure_url in response");
+            return {
+                success: false,
+                message: "Upload succeeded but no URL returned"
+            };
+        }
+
+        return {
+            success: true,
+            data: response.data.secure_url
+        };
 
     } catch (error) {
-        console.log("Cloudinary Upload Error:", error.response?.data || error.message);
-        return { success: false, message: error.message };
+        console.error("❌ ========= UPLOAD FAILED =========");
+        console.error("❌ Error:", error);
+        console.error("❌ Message:", error.message);
+        console.error("❌ Response data:", error.response?.data);
+        console.error("❌ Response status:", error.response?.status);
+
+        return {
+            success: false,
+            message: error.response?.data?.error?.message || error.message || "Upload failed"
+        };
     }
 };
 
-
 const Avatar = ({ uri, size = 40, style, isGroup = false }) => {
-
-
-
     const getAvatarPath = (file, isGroup) => {
-        if (file && typeof file == "string") return file;
-        if (file && typeof file == "object") return file.uri;
+        if (file && typeof file === "string") return file;
+        if (file && typeof file === "object") return file.uri;
         if (isGroup) return groupavatar;
         return singleavatar;
     }

@@ -4,7 +4,6 @@ import { getprofiledata, loginApi, registerApi } from "../services/AuthService";
 export const handleregister = createAsyncThunk("auth/register", async (data, thunkAPI) => {
     try {
         const response = await registerApi(data);
-        console.log(response, 'resssssssssss from auth slice ')
         return response.data;
     }
     catch (error) {
@@ -18,7 +17,6 @@ export const handleregister = createAsyncThunk("auth/register", async (data, thu
 export const handlelogin = createAsyncThunk("auth/login", async (data, thunkAPI) => {
     try {
         const response = await loginApi(data);
-        console.log(response, 'resssssssssss from loginnnnnnnn ')
         return response.data;
     }
     catch (error) {

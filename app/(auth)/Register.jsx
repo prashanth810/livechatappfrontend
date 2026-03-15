@@ -76,7 +76,6 @@ const Register = () => {
             router.replace("/(auth)/Login")
         } catch (err) {
             Alert.alert("Error", err || "Registration failed");
-            console.log(err, 'error message');
         }
     };
 

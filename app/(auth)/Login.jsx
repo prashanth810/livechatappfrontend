@@ -45,16 +45,13 @@ const Login = () => {
             }
 
             await AsyncStorage.setItem("token", token);
-            console.log("✅ Token saved");
 
             // Wait a bit before connecting
             setTimeout(async () => {
                 const sock = await connectSocket();
                 if (sock) {
-                    console.log("✅ Socket connection initiated");
                     router.replace("/(main)/Home");
                 } else {
-                    console.log("❌ Socket connection failed, but navigating anyway");
                     router.replace("/(main)/Home");
                 }
             }, 500);

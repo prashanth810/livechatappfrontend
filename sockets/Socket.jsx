@@ -41,15 +41,15 @@ export const connectSocket = async () => {
         });
 
         socket.on("connect", () => {
-            console.log("🟢 Socket connected:", socket.id);
+            console.log("🟢 Socket connected:");
         });
 
         socket.on("receive-message", (data) => {
-            console.log("📩 Message received:", data);
+            console.log("📩 Message received:");
         });
 
         socket.on("disconnect", (reason) => {
-            console.log("🔴 Socket disconnected:", reason);
+            console.log("🔴 Socket disconnected:");
         });
 
         socket.on("connect_error", (error) => {

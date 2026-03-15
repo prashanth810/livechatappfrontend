@@ -60,7 +60,6 @@ const ProfileModel = () => {
     }, []);
 
     const profileupdate = (data) => {
-        console.log(data, 'dddddddddddd');
         setLoading(false);
         if (data.success) {
             AsyncStorage.setItem("token", data.data.token);
@@ -114,7 +113,6 @@ const ProfileModel = () => {
             aspect: [4, 3],
             quality: 0.5,
         });
-        console.log(result);
 
         if (!result.canceled) {
             setUserData({ ...userData, avatar: result.assets[0] });

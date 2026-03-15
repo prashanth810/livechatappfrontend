@@ -14,7 +14,6 @@ const BaseUrl = axios.create({
 BaseUrl.interceptors.request.use(
     async (config) => {
         const token = await AsyncStorage.getItem("token");
-        console.log(token, 'tttttttttttttt');
 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;

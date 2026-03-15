@@ -11,7 +11,6 @@ const Conversationmessages = ({ item, i, showDivider }) => {
     const direct = item.type === "direct";
 
     const router = useRouter();
-    console.log(item, 'iiiiiiiiiiiiiiii')
 
     // For direct: pick the other user from participants
     // For group: use item.avatar
@@ -70,6 +69,7 @@ const Conversationmessages = ({ item, i, showDivider }) => {
 
     return (
         <View key={i}>
+
             <TouchableOpacity
                 style={styles.conversationmes} onPress={startconversation}>
                 <View>
@@ -114,8 +114,8 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        width: "95%",
+        width: "98%",
         alignSelf: "center",
-        backgroundColor: "rgba(0,0,0,0.07)",
+        backgroundColor: "#f2f2f2",
     }
 })

@@ -41,7 +41,7 @@ const NewconversationModel = () => {
 
     // Update refs every render so socket always calls the latest version
     handlegetcontactsRef.current = (data) => {
-        console.log("Contacts data received:", data);
+        console.log("Contacts data received:");
         if (data?.success) {
             setContacts(data.data || []);
         }
@@ -55,7 +55,7 @@ const NewconversationModel = () => {
         setIsLoading(false);
 
         if (data?.data?._id) {
-            console.log("✅ Navigating to conversation:", data.data._id.toString());
+            console.log("✅ Navigating to conversation:");
             routerRef.current.push({
                 pathname: "/(main)/Conversation",
                 params: {
@@ -70,7 +70,7 @@ const NewconversationModel = () => {
         }
 
         if (data?.data) {
-            console.log("✅ Fallback navigate:", data.data._id?.toString());
+            console.log("✅ Fallback navigate:");
             routerRef.current.push({
                 pathname: "/(main)/Conversation",
                 params: {
@@ -84,7 +84,6 @@ const NewconversationModel = () => {
             return;
         }
 
-        console.log("⚠️ No ID from backend, but conversation might exist");
     };
 
     // Stable wrappers — registered once, always delegate to current ref
@@ -114,7 +113,6 @@ const NewconversationModel = () => {
             aspect: [4, 3],
             quality: 0.5,
         });
-        console.log(result);
 
         if (!result.canceled) {
             setGroupavatar(result.assets[0]);
@@ -139,11 +137,9 @@ const NewconversationModel = () => {
             type: "direct",
             participants: [profileuser._id, user.id],
         };
-        console.log(profileuser._id, user.id);
 
         newcpncersation(payload);
 
-        console.log("➡️ Waiting for server response to navigate");
     };
 
 
@@ -179,7 +175,6 @@ const NewconversationModel = () => {
 
         }
         catch (error) {
-            console.log("Error creating group:", error);
             setIsLoading(false);
             Alert.alert("Error", "Failed to create group. Please try again.");
         }
@@ -225,7 +220,6 @@ const NewconversationModel = () => {
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.contactList}>
                 {contacts.map((user, i) => {
-                    console.log(user, 'uuuuuuuuuuuuuuu')
                     const isSelected = selectedusers.includes(user.id);
                     return (
                         <TouchableOpacity

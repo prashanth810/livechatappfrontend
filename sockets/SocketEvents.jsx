@@ -70,7 +70,6 @@ export const getcontacts = (handler, off = false) => {
 export const newcpncersation = (handler, off = false) => {
     const socket = getSocket();
     console.log("🔌 Socket connected?", socket?.connected);
-    console.log("🆔 My socket id:", socket?.id);
 
     if (!socket) {
         console.log("Socket is not connected !!!");
@@ -94,7 +93,6 @@ export const newcpncersation = (handler, off = false) => {
 export const getconversation = (handler, off = false) => {
     const socket = getSocket();
     console.log("🔌 Socket connected?", socket?.connected);
-    console.log("🆔 My socket id:", socket?.id);
 
     console.log(socket.data, 'ooooooooooooooooooo')
 
@@ -120,7 +118,6 @@ export const getconversation = (handler, off = false) => {
 export const newmessage = (handler, off = false) => {
     const socket = getSocket();
     console.log("🔌 Socket connected?", socket?.connected);
-    console.log("🆔 My socket id:", socket?.id);
 
     console.log(socket.data, 'ooooooooooooooooooo')
 
@@ -146,7 +143,6 @@ export const newmessage = (handler, off = false) => {
 export const getmessages = (handler, off = false) => {
     const socket = getSocket();
     console.log("🔌 Socket connected?", socket?.connected);
-    console.log("🆔 My socket id:", socket?.id);
 
     console.log(socket.data, 'ooooooooooooooooooo')
 
